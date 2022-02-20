@@ -16,7 +16,7 @@ impl GammaLookup {
     /// channels for each LED color.
     pub fn new() -> Self {
         Self {
-            table: (0_u8..255)
+            table: (0_u8..=255)
                 .map(|index| {
                     let f = ((index as f64) / 255.0).powf(2.8);
                     GammaValues {
@@ -52,6 +52,18 @@ mod test {
     #[test]
     fn new_gamma_lookup() -> () {
         let gamma_lookup = GammaLookup::new();
-        assert_eq!(gamma_lookup.table.len(), 255);
+        assert_eq!(gamma_lookup.table.len(), 256);
+    }
+
+    #[test]
+    fn red_greater_than_green() -> () {
+        let gamma_lookup = GammaLookup::new();
+        assert!(gamma_lookup.red(255) > gamma_lookup.green(255));
+    }
+
+    #[test]
+    fn green_greater_than_blue() -> () {
+        let gamma_lookup = GammaLookup::new();
+        assert!(gamma_lookup.green(255) > gamma_lookup.blue(255));
     }
 }
