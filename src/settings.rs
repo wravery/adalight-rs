@@ -385,12 +385,6 @@ impl Settings {
     }
 }
 
-impl Default for Settings {
-    fn default() -> Self {
-        JsonSettings::default().into()
-    }
-}
-
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct JsonSettings {
@@ -401,110 +395,6 @@ struct JsonSettings {
     pub throttleTimer: u64,
     pub displays: Vec<JsonDisplayConfiguration>,
     pub servers: Vec<JsonOpcServer>,
-}
-
-impl Default for JsonSettings {
-    fn default() -> Self {
-        Self {
-            minBrightness: 64,
-            fade: 0.0,
-            timeout: 5000, // 5 seconds
-            fpsMax: 30,
-            throttleTimer: 3000, // 3 seconds
-            // For our example purposes, the coordinate list below forms a ring around
-            // the perimeter of a single screen, with a two pixel gap at the bottom to
-            // accommodate a monitor stand. Modify this to match your own setup:
-            displays: vec![
-                // Screen 0: 10 LEDs across, 5 LEDs down
-                JsonDisplayConfiguration {
-                    horizontalCount: 10,
-                    verticalCount: 5,
-                    positions: vec![
-                        // Bottom edge, left half
-                        JsonLedPosition { x: 3, y: 4 },
-                        JsonLedPosition { x: 2, y: 4 },
-                        JsonLedPosition { x: 1, y: 4 },
-                        // Left edge
-                        JsonLedPosition { x: 0, y: 4 },
-                        JsonLedPosition { x: 0, y: 3 },
-                        JsonLedPosition { x: 0, y: 2 },
-                        JsonLedPosition { x: 0, y: 1 },
-                        // Top edge
-                        JsonLedPosition { x: 0, y: 0 },
-                        JsonLedPosition { x: 1, y: 0 },
-                        JsonLedPosition { x: 2, y: 0 },
-                        JsonLedPosition { x: 3, y: 0 },
-                        JsonLedPosition { x: 4, y: 0 },
-                        JsonLedPosition { x: 5, y: 0 },
-                        JsonLedPosition { x: 6, y: 0 },
-                        JsonLedPosition { x: 7, y: 0 },
-                        JsonLedPosition { x: 8, y: 0 },
-                        JsonLedPosition { x: 9, y: 0 },
-                        // Right edge
-                        JsonLedPosition { x: 9, y: 1 },
-                        JsonLedPosition { x: 9, y: 2 },
-                        JsonLedPosition { x: 9, y: 3 },
-                        JsonLedPosition { x: 9, y: 4 },
-                        // Bottom edge, right half
-                        JsonLedPosition { x: 8, y: 4 },
-                        JsonLedPosition { x: 7, y: 4 },
-                        JsonLedPosition { x: 6, y: 4 },
-                    ],
-                },
-            ],
-            servers: vec![
-                // For this example we're going to map the top and left edges of
-                // a single display to channel 2 on the OPC server listening on port 80
-                // at 192.168.1.14.
-                JsonOpcServer {
-                    host: String::from("192.168.1.14"),
-                    port: String::from("80"),
-                    alphaChannel: false,
-                    channels: vec![
-                        // Channel: 2
-                        JsonOpcChannel {
-                            channel: 2,
-                            // The top edge is not proportional to the display in the OPC strip,
-                            // the first 83 pixels go from the top right to the top left. There's
-                            // also a 4 pixel gap between the first 64 pixels and the last 19,
-                            // so we need to divide that into 3 ranges.
-                            pixels: vec![
-                                // Top edge (right to left)
-                                JsonOpcPixelRange {
-                                    pixelCount: 64,
-                                    displayIndex: vec![
-                                        // Display: 0
-                                        vec![16, 15, 14, 13, 12, 11, 10, 9],
-                                    ],
-                                },
-                                // Top edge (gap)
-                                JsonOpcPixelRange {
-                                    pixelCount: 4,
-                                    displayIndex: vec![],
-                                },
-                                // Top edge (right to left)
-                                JsonOpcPixelRange {
-                                    pixelCount: 19,
-                                    displayIndex: vec![
-                                        // Display: 0
-                                        vec![8, 7],
-                                    ],
-                                },
-                                // Left edge (top to bottom)
-                                JsonOpcPixelRange {
-                                    pixelCount: 29,
-                                    displayIndex: vec![
-                                        // Display: 0
-                                        vec![7, 6, 5, 4, 3],
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        }
-    }
 }
 
 impl Into<Settings> for JsonSettings {
