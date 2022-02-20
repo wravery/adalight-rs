@@ -90,14 +90,14 @@ impl<'a> SerialPort<'a> {
         if INVALID_HANDLE_VALUE == self.port_handle {
             let mut pending_ports: Vec<Option<PortResources>> = Vec::new();
 
-            for port_number in (0_u8..=255).into_iter() {
+            for port_number in 0_u8..=255 {
                 for port in pending_ports.iter_mut().filter_map(Some) {
                     if let Some(resources) = port {
                         let mut cb = 0_u32;
                         unsafe {
                             if GetOverlappedResult(
                                 resources.port_handle,
-                                &mut resources.overlapped,
+                                &resources.overlapped,
                                 &mut cb,
                                 false,
                             )
@@ -164,7 +164,7 @@ impl<'a> SerialPort<'a> {
                     unsafe {
                         if GetOverlappedResult(
                             resources.port_handle,
-                            &mut resources.overlapped,
+                            &resources.overlapped,
                             &mut cb,
                             true,
                         )
@@ -212,7 +212,7 @@ impl<'a> SerialPort<'a> {
             }
         }
 
-        return true;
+        true
     }
 
     pub fn close(&mut self) {

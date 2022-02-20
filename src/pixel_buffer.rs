@@ -100,7 +100,7 @@ impl PixelBuffer {
         self.buffer[self.position] = ((rgba_pixel & 0xFF00) >> 8) as u8;
         self.position += 1;
 
-        if (self.alpha_channel) {
+        if self.alpha_channel {
             self.buffer[self.position] = (rgba_pixel & 0xFF) as u8;
             self.position += 1;
         }

@@ -475,7 +475,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn parse_led_position()  {
+    fn parse_led_position() {
         let led_position: JsonLedPosition =
             serde_json::from_str(r#"{ "x": 3, "y": 4 }"#).expect("parse the JsonLedPosition");
         let led_position: LedPosition = led_position.into();
@@ -484,7 +484,7 @@ mod test {
     }
 
     #[test]
-    fn parse_display_configuration()  {
+    fn parse_display_configuration() {
         let display_configuration: JsonDisplayConfiguration =
             serde_json::from_str(r#"
 {
@@ -506,7 +506,7 @@ mod test {
     }
 
     #[test]
-    fn parse_opc_pixel_range()  {
+    fn parse_opc_pixel_range() {
         let opc_pixel_range: JsonOpcPixelRange = serde_json::from_str(
             r#"
 {
@@ -533,7 +533,7 @@ mod test {
     }
 
     #[test]
-    fn parse_opc_channel()  {
+    fn parse_opc_channel() {
         let opc_channel: JsonOpcChannel = serde_json::from_str(
             r#"
 {
@@ -567,7 +567,7 @@ mod test {
     }
 
     #[test]
-    fn parse_opc_server()  {
+    fn parse_opc_server() {
         let opc_server: JsonOpcServer = serde_json::from_str(
             r#"
 {
@@ -610,7 +610,7 @@ mod test {
     }
 
     #[test]
-    fn parse_settings()  {
+    fn parse_settings() {
         let settings = Settings::from_str(r#"
 {
     /*
