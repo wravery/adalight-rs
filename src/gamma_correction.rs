@@ -50,19 +50,19 @@ mod test {
     use super::*;
 
     #[test]
-    fn new_gamma_lookup() -> () {
+    fn new_gamma_lookup() {
         let gamma_lookup = GammaLookup::new();
         assert_eq!(gamma_lookup.table.len(), 256);
     }
 
     #[test]
-    fn red_greater_than_green() -> () {
+    fn red_greater_than_green() {
         let gamma_lookup = GammaLookup::new();
         assert!(gamma_lookup.red(255) > gamma_lookup.green(255));
     }
 
     #[test]
-    fn green_greater_than_blue() -> () {
+    fn green_greater_than_blue() {
         let gamma_lookup = GammaLookup::new();
         assert!(gamma_lookup.green(255) > gamma_lookup.blue(255));
     }

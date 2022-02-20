@@ -362,12 +362,12 @@ pub struct Settings {
 
     /// Cap the refresh rate at 30 FPS. If the update takes longer the FPS
     /// will actually be lower.
-    pub fps_max: u64,
+    pub fps_max: u32,
 
     /// Timer frequency (in milliseconds) when we're throttled, e.g. when a UAC prompt
     /// is displayed. If this value is higher, we'll use less CPU when we can't sample
     /// the display, but it will take longer to resume sampling again.
-    pub throttle_timer: u64,
+    pub throttle_timer: u32,
 
     /// Set of displays that should be sampled to drive the LED display.
     pub displays: Vec<DisplayConfiguration>,
@@ -383,7 +383,7 @@ pub struct Settings {
     #[doc(hidden)]
     weight: f64,
     #[doc(hidden)]
-    delay: u64,
+    delay: u32,
 }
 
 impl Settings {
@@ -411,7 +411,7 @@ impl Settings {
     }
 
     /// Get the delay in milliseconds per frame to limit the maximum frames-per-second.
-    pub fn get_delay(&self) -> u64 {
+    pub fn get_delay(&self) -> u32 {
         self.delay
     }
 }
@@ -423,8 +423,8 @@ struct JsonSettings {
     pub minBrightness: u8,
     pub fade: f64,
     pub timeout: u32,
-    pub fpsMax: u64,
-    pub throttleTimer: u64,
+    pub fpsMax: u32,
+    pub throttleTimer: u32,
     pub displays: Vec<JsonDisplayConfiguration>,
     pub servers: Vec<JsonOpcServer>,
 }
@@ -475,7 +475,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn parse_led_position() -> () {
+    fn parse_led_position()  {
         let led_position: JsonLedPosition =
             serde_json::from_str(r#"{ "x": 3, "y": 4 }"#).expect("parse the JsonLedPosition");
         let led_position: LedPosition = led_position.into();
@@ -484,7 +484,7 @@ mod test {
     }
 
     #[test]
-    fn parse_display_configuration() -> () {
+    fn parse_display_configuration()  {
         let display_configuration: JsonDisplayConfiguration =
             serde_json::from_str(r#"
 {
@@ -506,7 +506,7 @@ mod test {
     }
 
     #[test]
-    fn parse_opc_pixel_range() -> () {
+    fn parse_opc_pixel_range()  {
         let opc_pixel_range: JsonOpcPixelRange = serde_json::from_str(
             r#"
 {
@@ -533,7 +533,7 @@ mod test {
     }
 
     #[test]
-    fn parse_opc_channel() -> () {
+    fn parse_opc_channel()  {
         let opc_channel: JsonOpcChannel = serde_json::from_str(
             r#"
 {
@@ -567,7 +567,7 @@ mod test {
     }
 
     #[test]
-    fn parse_opc_server() -> () {
+    fn parse_opc_server()  {
         let opc_server: JsonOpcServer = serde_json::from_str(
             r#"
 {
@@ -610,7 +610,7 @@ mod test {
     }
 
     #[test]
-    fn parse_settings() -> () {
+    fn parse_settings()  {
         let settings = Settings::from_str(r#"
 {
     /*

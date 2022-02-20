@@ -1,4 +1,6 @@
 mod gamma_correction;
+mod pixel_buffer;
+mod serial_port;
 mod settings;
 
 use settings::Settings;
