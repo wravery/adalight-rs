@@ -8,13 +8,14 @@ use serde_json::Result;
 /// here belongs to the first LED in the strand, second element is the second
 /// LED, and so forth). Each pair in this array consists of an X and Y
 /// coordinate specified in the grid units given for that display where
-/// { 0, 0 } is the top-left corner of the display.
+/// `{ 0, 0 }` is the top-left corner of the display.
 #[derive(Debug)]
 pub struct LedPosition {
     pub x: usize,
     pub y: usize,
 }
 
+#[doc(hidden)]
 #[derive(Deserialize)]
 struct JsonLedPosition {
     pub x: usize,
@@ -41,7 +42,7 @@ impl From<JsonLedPosition> for LedPosition {
 /// displays this might require some trial and error to figure out the precise
 /// order relative to your setup. To leave a gap in the list and include another
 /// display after that, just include an entry for the skipped display with
-/// { 0, 0 } for the horizontalCount and verticalCount.
+/// `{ 0, 0 }` for the horizontalCount and verticalCount.
 #[derive(Debug)]
 pub struct DisplayConfiguration {
     pub horizontal_count: usize,
@@ -49,6 +50,7 @@ pub struct DisplayConfiguration {
     pub positions: Vec<LedPosition>,
 }
 
+#[doc(hidden)]
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct JsonDisplayConfiguration {
@@ -76,8 +78,8 @@ impl From<JsonDisplayConfiguration> for DisplayConfiguration {
 /// channel, so to leave a gap in the channel you would create a range of pixels
 /// which don't map to any LEDs. The pixels sampled from the display will be
 /// interpolated with an even distribution over the range of pixels in the order
-/// that they appear in displayIndex. The 2-dimensional vector displayIndex[i][j]
-/// maps to the display at index i and the sub-pixel at index j. That way we don't
+/// that they appear in displayIndex. The 2-dimensional vector `displayIndex[i][j]`
+/// maps to the display at index `i` and the sub-pixel at index `j`. That way we don't
 /// need to re-define the displays or get new samples separately for OPC, we can
 /// just take samples and then re-render those samples to both the AdaLight over
 /// a serial port and the OPC server over TCP/IP.
@@ -104,6 +106,7 @@ impl OpcPixelRange {
     }
 }
 
+#[doc(hidden)]
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct JsonOpcPixelRange {
@@ -199,6 +202,7 @@ impl From<JsonOpcChannel> for OpcChannel {
     }
 }
 
+#[doc(hidden)]
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct JsonOpcChannel {
@@ -217,6 +221,7 @@ pub struct OpcServer {
     pub channels: Vec<OpcChannel>,
 }
 
+#[doc(hidden)]
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct JsonOpcServer {
@@ -385,6 +390,7 @@ impl Settings {
     }
 }
 
+#[doc(hidden)]
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct JsonSettings {
