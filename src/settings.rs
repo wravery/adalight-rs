@@ -21,11 +21,11 @@ struct JsonLedPosition {
     pub y: usize,
 }
 
-impl Into<LedPosition> for JsonLedPosition {
-    fn into(self) -> LedPosition {
-        LedPosition {
-            x: self.x,
-            y: self.y,
+impl From<JsonLedPosition> for LedPosition {
+    fn from(json: JsonLedPosition) -> Self {
+        Self {
+            x: json.x,
+            y: json.y,
         }
     }
 }
@@ -57,12 +57,12 @@ struct JsonDisplayConfiguration {
     pub positions: Vec<JsonLedPosition>,
 }
 
-impl Into<DisplayConfiguration> for JsonDisplayConfiguration {
-    fn into(self: JsonDisplayConfiguration) -> DisplayConfiguration {
-        DisplayConfiguration {
-            horizontal_count: self.horizontalCount,
-            vertical_count: self.verticalCount,
-            positions: self
+impl From<JsonDisplayConfiguration> for DisplayConfiguration {
+    fn from(json: JsonDisplayConfiguration) -> Self {
+        Self {
+            horizontal_count: json.horizontalCount,
+            vertical_count: json.verticalCount,
+            positions: json
                 .positions
                 .into_iter()
                 .map(|position| position.into())
@@ -111,11 +111,11 @@ struct JsonOpcPixelRange {
     pub displayIndex: Vec<Vec<usize>>,
 }
 
-impl Into<OpcPixelRange> for JsonOpcPixelRange {
-    fn into(self) -> OpcPixelRange {
-        let mut pixel_range = OpcPixelRange {
-            pixel_count: self.pixelCount,
-            display_index: self.displayIndex,
+impl From<JsonOpcPixelRange> for OpcPixelRange {
+    fn from(json: JsonOpcPixelRange) -> Self {
+        let mut pixel_range = Self {
+            pixel_count: json.pixelCount,
+            display_index: json.displayIndex,
             sample_count: 0,
             kernel_radius: 0,
             kernel_weights: vec![],
@@ -181,11 +181,11 @@ impl OpcChannel {
     }
 }
 
-impl Into<OpcChannel> for JsonOpcChannel {
-    fn into(self) -> OpcChannel {
-        let mut channel = OpcChannel {
-            channel: self.channel,
-            pixels: self.pixels.into_iter().map(|pixel| pixel.into()).collect(),
+impl From<JsonOpcChannel> for OpcChannel {
+    fn from(json: JsonOpcChannel) -> Self {
+        let mut channel = Self {
+            channel: json.channel,
+            pixels: json.pixels.into_iter().map(|pixel| pixel.into()).collect(),
             total_sample_count: 0,
             total_pixel_count: 0,
         };
@@ -226,13 +226,13 @@ struct JsonOpcServer {
     pub channels: Vec<JsonOpcChannel>,
 }
 
-impl Into<OpcServer> for JsonOpcServer {
-    fn into(self) -> OpcServer {
-        OpcServer {
-            host: self.host,
-            port: self.port,
-            alpha_channel: self.alphaChannel,
-            channels: self
+impl From<JsonOpcServer> for OpcServer {
+    fn from(json: JsonOpcServer) -> Self {
+        Self {
+            host: json.host,
+            port: json.port,
+            alpha_channel: json.alphaChannel,
+            channels: json
                 .channels
                 .into_iter()
                 .map(|channel| channel.into())
@@ -397,20 +397,20 @@ struct JsonSettings {
     pub servers: Vec<JsonOpcServer>,
 }
 
-impl Into<Settings> for JsonSettings {
-    fn into(self) -> Settings {
-        let mut settings = Settings {
-            min_brightness: self.minBrightness,
-            fade: self.fade,
-            timeout: self.timeout,
-            fps_max: self.fpsMax,
-            throttle_timer: self.throttleTimer,
-            displays: self
+impl From<JsonSettings> for Settings {
+    fn from(json: JsonSettings) -> Self {
+        let mut settings = Self {
+            min_brightness: json.minBrightness,
+            fade: json.fade,
+            timeout: json.timeout,
+            fps_max: json.fpsMax,
+            throttle_timer: json.throttleTimer,
+            displays: json
                 .displays
                 .into_iter()
                 .map(|display| display.into())
                 .collect(),
-            servers: self
+            servers: json
                 .servers
                 .into_iter()
                 .map(|server| server.into())
@@ -454,18 +454,19 @@ mod test {
     #[test]
     fn parse_display_configuration() -> () {
         let display_configuration: JsonDisplayConfiguration =
-            serde_json::from_str(r#"{
-                "horizontalCount": 10,
-                "verticalCount": 5,
-                "positions": [
-                    { "x": 3, "y": 4 }, { "x": 2, "y": 4 }, { "x": 1, "y": 4 },
-                    { "x": 0, "y": 4 }, { "x": 0, "y": 3 }, { "x": 0, "y": 2 }, { "x": 0, "y": 1 },
-                    { "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 2, "y": 0 }, { "x": 3, "y": 0 }, { "x": 4, "y": 0 },
-                    { "x": 5, "y": 0 }, { "x": 6, "y": 0 }, { "x": 7, "y": 0 }, { "x": 8, "y": 0 }, { "x": 9, "y": 0 },
-                    { "x": 9, "y": 1 }, { "x": 9, "y": 2 }, { "x": 9, "y": 3 }, { "x": 9, "y": 4 },
-                    { "x": 8, "y": 4 }, { "x": 7, "y": 4 }, { "x": 6, "y": 4 }
-                ]
-            }"#).expect("parse the JsonDisplayConfiguration");
+            serde_json::from_str(r#"
+{
+    "horizontalCount": 10,
+    "verticalCount": 5,
+    "positions": [
+        { "x": 3, "y": 4 }, { "x": 2, "y": 4 }, { "x": 1, "y": 4 },
+        { "x": 0, "y": 4 }, { "x": 0, "y": 3 }, { "x": 0, "y": 2 }, { "x": 0, "y": 1 },
+        { "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 2, "y": 0 }, { "x": 3, "y": 0 }, { "x": 4, "y": 0 },
+        { "x": 5, "y": 0 }, { "x": 6, "y": 0 }, { "x": 7, "y": 0 }, { "x": 8, "y": 0 }, { "x": 9, "y": 0 },
+        { "x": 9, "y": 1 }, { "x": 9, "y": 2 }, { "x": 9, "y": 3 }, { "x": 9, "y": 4 },
+        { "x": 8, "y": 4 }, { "x": 7, "y": 4 }, { "x": 6, "y": 4 }
+    ]
+}"#).expect("parse the JsonDisplayConfiguration");
         let display_configuration: DisplayConfiguration = display_configuration.into();
         assert_eq!(display_configuration.horizontal_count, 10);
         assert_eq!(display_configuration.vertical_count, 5);
@@ -475,10 +476,11 @@ mod test {
     #[test]
     fn parse_opc_pixel_range() -> () {
         let opc_pixel_range: JsonOpcPixelRange = serde_json::from_str(
-            r#"{
-                "pixelCount": 64,
-                "displayIndex": [ [ 16, 15, 14, 13, 12, 11, 10, 9 ] ]
-            }"#,
+            r#"
+{
+    "pixelCount": 64,
+    "displayIndex": [ [ 16, 15, 14, 13, 12, 11, 10, 9 ] ]
+}"#,
         )
         .expect("parse the JsonOpcPixelRange");
         let opc_pixel_range: OpcPixelRange = opc_pixel_range.into();
@@ -501,27 +503,28 @@ mod test {
     #[test]
     fn parse_opc_channel() -> () {
         let opc_channel: JsonOpcChannel = serde_json::from_str(
-            r#"{
-                "channel": 2,
-                "pixels": [
-                    {
-                        "pixelCount": 64,
-                        "displayIndex": [ [ 16, 15, 14, 13, 12, 11, 10, 9 ] ]
-                    },
-                    {
-                        "pixelCount": 4,
-                        "displayIndex": []
-                    },
-                    {
-                        "pixelCount": 19,
-                        "displayIndex": [ [ 8, 7 ] ]
-                    },
-                    {
-                        "pixelCount": 29,
-                        "displayIndex": [ [ 7, 6, 5, 4, 3 ] ]
-                    }
-                ]
-            }"#,
+            r#"
+{
+    "channel": 2,
+    "pixels": [
+        {
+            "pixelCount": 64,
+            "displayIndex": [ [ 16, 15, 14, 13, 12, 11, 10, 9 ] ]
+        },
+        {
+            "pixelCount": 4,
+            "displayIndex": []
+        },
+        {
+            "pixelCount": 19,
+            "displayIndex": [ [ 8, 7 ] ]
+        },
+        {
+            "pixelCount": 29,
+            "displayIndex": [ [ 7, 6, 5, 4, 3 ] ]
+        }
+    ]
+}"#,
         )
         .expect("parse the JsonOpcChannel");
         let opc_channel: OpcChannel = opc_channel.into();
@@ -534,36 +537,37 @@ mod test {
     #[test]
     fn parse_opc_server() -> () {
         let opc_server: JsonOpcServer = serde_json::from_str(
-            r#"{
-                "host": "192.168.1.14",
-                "port": "80",
-                "alphaChannel": false,
+            r#"
+{
+    "host": "192.168.1.14",
+    "port": "80",
+    "alphaChannel": false,
 
-                "channels": [
-                    {
-                        "channel": 2,
-                        "pixels": [
-                            {
-                                "pixelCount": 64,
-                                "displayIndex": [ [ 16, 15, 14, 13, 12, 11, 10, 9 ] ]
-                            },
-                            {
-                                "pixelCount": 4,
-                                "displayIndex": []
-                            },
-                            {
-                                "pixelCount": 19,
-                                "displayIndex": [ [ 8, 7 ] ]
-                            },
+    "channels": [
+        {
+            "channel": 2,
+            "pixels": [
+                {
+                    "pixelCount": 64,
+                    "displayIndex": [ [ 16, 15, 14, 13, 12, 11, 10, 9 ] ]
+                },
+                {
+                    "pixelCount": 4,
+                    "displayIndex": []
+                },
+                {
+                    "pixelCount": 19,
+                    "displayIndex": [ [ 8, 7 ] ]
+                },
 
-                            {
-                                "pixelCount": 29,
-                                "displayIndex": [ [ 7, 6, 5, 4, 3 ] ]
-                            }
-                        ]
-                    }
-                ]
-        }"#,
+                {
+                    "pixelCount": 29,
+                    "displayIndex": [ [ 7, 6, 5, 4, 3 ] ]
+                }
+            ]
+        }
+    ]
+}"#,
         )
         .expect("parse the JsonOpcServer");
         let opc_server: OpcServer = opc_server.into();
@@ -575,61 +579,142 @@ mod test {
 
     #[test]
     fn parse_settings() -> () {
-        let settings = Settings::from_str(r#"{
-            "minBrightness": 64,
-            "fade": 0,
-            "timeout": 5000,
-            "fpsMax": 30,
-            "throttleTimer": 3000,
-            "displays": [
-              {
-                "horizontalCount": 10,
-                "verticalCount": 5,
-                "positions": [
-                  { "x": 3, "y": 4 }, { "x": 2, "y": 4 }, { "x": 1, "y": 4 },
-                  { "x": 0, "y": 4 }, { "x": 0, "y": 3 }, { "x": 0, "y": 2 }, { "x": 0, "y": 1 },
-                  { "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 2, "y": 0 }, { "x": 3, "y": 0 }, { "x": 4, "y": 0 },
-                  { "x": 5, "y": 0 }, { "x": 6, "y": 0 }, { "x": 7, "y": 0 }, { "x": 8, "y": 0 }, { "x": 9, "y": 0 },
-                  { "x": 9, "y": 1 }, { "x": 9, "y": 2 }, { "x": 9, "y": 3 }, { "x": 9, "y": 4 },
-                  { "x": 8, "y": 4 }, { "x": 7, "y": 4 }, { "x": 6, "y": 4 }
-                ]
-              }
-            ],
-          
-            "servers": [
-              {
-                "host": "192.168.1.14",
-                "port": "80",
-                "alphaChannel": false,
-          
-                "channels": [
-                  {
-                    "channel": 2,
-          
-                    "pixels": [
-                      {
-                        "pixelCount": 64,
-                        "displayIndex": [ [ 16, 15, 14, 13, 12, 11, 10, 9 ] ]
-                      },
-                      {
-                        "pixelCount": 4,
-                        "displayIndex": []
-                      },
-                      {
-                        "pixelCount": 19,
-                        "displayIndex": [ [ 8, 7 ] ]
-                      },
-          
-                      {
-                        "pixelCount": 29,
-                        "displayIndex": [ [ 7, 6, 5, 4, 3 ] ]
-                      }
-                    ]
-                  }
-                ]
-              }
+        let settings = Settings::from_str(r#"
+{
+    /*
+     * Minimum LED brightness; some users prefer a small amount of backlighting
+     * at all times, regardless of screen content. Higher values are brighter,
+     * or set to 0 to disable this feature.
+     */
+    "minBrightness": 64,
+
+    /*
+     * LED transition speed; it's sometimes distracting if LEDs instantaneously
+     * track screen contents (such as during bright flashing sequences), so this
+     * feature enables a gradual fade to each new LED state. Higher numbers yield
+     * slower transitions (max of 0.5), or set to 0 to disable this feature
+     * (immediate transition of all LEDs).
+     */
+    "fade": 0,
+
+    /*
+     * Serial device timeout (in milliseconds), for locating Arduino device
+     * running the corresponding LEDstream code.
+     */
+    "timeout": 5000, // 5 seconds
+
+    /*
+     * Cap the refresh rate at 30 FPS. If the update takes longer the FPS
+     * will actually be lower.
+     */
+    "fpsMax": 30,
+
+    /*
+     * Timer frequency (in milliseconds) when we're throttled, e.g. when a UAC prompt
+     * is displayed. If this value is higher, we'll use less CPU when we can't sample
+     * the display, but it will take longer to resume sampling again.
+     */
+    "throttleTimer": 3000, // 3 seconds
+
+    /*
+     * This array contains details for each display that the software will
+     * process. The horizontalCount is the number LEDs accross the top of the
+     * AdaLight board, and the verticalCount is the number of LEDs up and down
+     * the sides. These counts are used to figure out how big a block of pixels
+     * should be to sample the edge around each LED.  If you have screen(s)
+     * attached that are not among those being "Adalighted," you only need to
+     * include them in this list if they show up before the "Adalighted"
+     * display(s) in the system's display enumeration. If you have multiple
+     * displays this might require some trial and error to figure out the precise
+     * order relative to your setup. To leave a gap in the list and include another
+     * display after that, just include an entry for the skipped display with
+     * { 0, 0 } for the horizontalCount and verticalCount.
+     */
+    "displays": [
+        {
+            "horizontalCount": 10,
+            "verticalCount": 5,
+
+            "positions": [
+                // Bottom edge, left half
+                { "x": 3, "y": 4 }, { "x": 2, "y": 4 }, { "x": 1, "y": 4 },
+                // Left edge
+                { "x": 0, "y": 4 }, { "x": 0, "y": 3 }, { "x": 0, "y": 2 }, { "x": 0, "y": 1 },
+                // Top edge
+                { "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 2, "y": 0 }, { "x": 3, "y": 0 }, { "x": 4, "y": 0 },
+                { "x": 5, "y": 0 }, { "x": 6, "y": 0 }, { "x": 7, "y": 0 }, { "x": 8, "y": 0 }, { "x": 9, "y": 0 },
+                // Right edge
+                { "x": 9, "y": 1 }, { "x": 9, "y": 2 }, { "x": 9, "y": 3 }, { "x": 9, "y": 4 },
+                // Bottom edge, right half
+                { "x": 8, "y": 4 }, { "x": 7, "y": 4 }, { "x": 6, "y": 4 }
             ]
-          }"#).expect("parse the sample");
+        }
+    ],
+
+    /*
+     * OPC server configuration includes the hostname, port (as a string for getaddrinfo)
+     * and a collection of sub-channels and pixel ranges mapped to portions of the AdaLight
+     * display. Each range of pixels for an OPC (Open Pixel Controller) server is represented
+     * by a channel and a pixelCount. Ranges are contiguous starting at 0 for each channel,
+     * so to leave a gap in the channel you would create a range of pixels which don't map to
+     * any LEDs. The pixels sampled from the display will be interpolated with an even
+     * distribution over the range of pixels in the order that they appear in displayIndex.
+     * The 2-dimensional array displayIndex[i][j] maps to the display at index i and the
+     * sub-pixel at index j. That way we don't need to re-define the displays or get new
+     * samples separately for OPC, we can just take samples and then re-render those samples
+     * to both the AdaLight over a serial port and the OPC server over TCP/IP.
+     */
+    "servers": [
+        {
+            "host": "192.168.1.14",
+            "port": "80",
+            "alphaChannel": false,
+
+            "channels": [
+                {
+                    "channel": 2,
+
+                    "pixels": [
+                        // The top edge is not proportional to the display in the OPC strip,
+                        // the first 83 pixels go from the top right to the top left. There's
+                        // also a 4 pixel gap between the first 64 pixels and the last 19,
+                        // so we need to divide that into 3 ranges.
+                        {
+                            "pixelCount": 64,
+
+                            // Top edge (right to left)
+                            "displayIndex": [ [ 16, 15, 14, 13, 12, 11, 10, 9 ] ]
+                        },
+                        {
+                            "pixelCount": 4,
+
+                            // Top edge (gap)
+                            "displayIndex": []
+                        },
+                        {
+                            "pixelCount": 19,
+
+                            // Top edge (right to left)
+                            "displayIndex": [ [ 8, 7 ] ]
+                        },
+
+                        // The left edge continues down from the top left corner and reaches
+                        // the bottom with 29 pixels. Note the overlap between these edges on the
+                        // display, both ranges of pixels end up using the origin (0, 0) in the
+                        // top-left corner of the display.
+                        {
+                            "pixelCount": 29,
+
+                            // Left edge (top to bottom)
+                            "displayIndex": [ [ 7, 6, 5, 4, 3 ] ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}"#,
+        ).expect("parse the sample");
         assert_eq!(settings.min_brightness, 64);
         assert_eq!(settings.fade, 0.0);
         assert_eq!(settings.timeout, 5000);
