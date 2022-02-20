@@ -1,3 +1,4 @@
+mod gamma_correction;
 mod settings;
 
 use settings::Settings;

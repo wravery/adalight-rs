@@ -87,20 +87,28 @@ impl From<JsonDisplayConfiguration> for DisplayConfiguration {
 pub struct OpcPixelRange {
     pub pixel_count: usize,
     pub display_index: Vec<Vec<usize>>,
+    #[doc(hidden)]
     sample_count: usize,
+    #[doc(hidden)]
     kernel_radius: usize,
+    #[doc(hidden)]
     kernel_weights: Vec<f64>,
 }
 
 impl OpcPixelRange {
+    /// Get the numer of display samples that should be used to drive this range
+    /// of OPC pixels.
     pub fn get_sample_count(&self) -> usize {
         self.sample_count
     }
 
+    /// When performing a Guassian blur over a range of OPC pixels, get the radius
+    /// of the blur kernel.
     pub fn get_kernel_radius(&self) -> usize {
         self.kernel_radius
     }
 
+    /// Get the weights of the elements in the blur kernel.
     pub fn get_kernel_weights(&self) -> &[f64] {
         &self.kernel_weights
     }
@@ -170,15 +178,19 @@ impl From<JsonOpcPixelRange> for OpcPixelRange {
 pub struct OpcChannel {
     pub channel: u8,
     pub pixels: Vec<OpcPixelRange>,
+    #[doc(hidden)]
     total_sample_count: usize,
+    #[doc(hidden)]
     total_pixel_count: usize,
 }
 
 impl OpcChannel {
+    /// Get the count of display samples for this channel.
     pub fn get_total_sample_count(&self) -> usize {
         self.total_sample_count
     }
 
+    /// Get the total number of OPC pixels that the samples should be spread across.
     pub fn get_total_pixel_count(&self) -> usize {
         self.total_pixel_count
     }
@@ -329,6 +341,7 @@ fn strip_comments(json: &str) -> String {
     output.join("\n")
 }
 
+/// Access all of the settings for AdaLight.
 #[derive(Debug)]
 pub struct Settings {
     /// Minimum LED brightness; some users prefer a small amount of backlighting
@@ -356,35 +369,48 @@ pub struct Settings {
     /// the display, but it will take longer to resume sampling again.
     pub throttle_timer: u64,
 
+    /// Set of displays that should be sampled to drive the LED display.
     pub displays: Vec<DisplayConfiguration>,
+
+    /// Set of OPC (Open Pixel Controller) servers and channels which should also be
+    /// driven by the display samples.
     pub servers: Vec<OpcServer>,
 
+    #[doc(hidden)]
     min_brightness_color: u32,
+    #[doc(hidden)]
     total_led_count: usize,
+    #[doc(hidden)]
     weight: f64,
+    #[doc(hidden)]
     delay: u64,
 }
 
 impl Settings {
+    /// Strip any JSON comments for backwards compatibility and parse the settings
+    /// from a configuration file.
     pub fn from_str(json: &str) -> Result<Self> {
         let json = strip_comments(json);
-        println!("{json}");
         let json: JsonSettings = serde_json::from_str(&json)?;
         Ok(json.into())
     }
 
+    /// Determine the color of an LED at its minimum brightness.
     pub fn get_min_brightness_color(&self) -> u32 {
         self.min_brightness_color
     }
 
+    /// Get the count of all LEDs across all displays.
     pub fn get_total_led_count(&self) -> usize {
         self.total_led_count
     }
 
+    /// Get the inverse of the fade value (1.0 - fade).
     pub fn get_weight(&self) -> f64 {
         self.weight
     }
 
+    /// Get the delay in milliseconds per frame to limit the maximum frames-per-second.
     pub fn get_delay(&self) -> u64 {
         self.delay
     }
