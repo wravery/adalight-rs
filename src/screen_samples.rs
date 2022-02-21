@@ -30,8 +30,8 @@ use crate::{
 };
 
 struct DisplayResources {
-    pub adapter: IDXGIAdapter1,
-    pub device: ID3D11Device,
+    pub _adapter: IDXGIAdapter1,
+    pub _device: ID3D11Device,
     pub context: ID3D11DeviceContext,
     pub duplication: IDXGIOutputDuplication,
     pub staging: Option<ID3D11Texture2D>,
@@ -48,11 +48,6 @@ const PIXEL_SAMPLES: usize = 16;
 const OFFSET_ARRAY_SIZE: usize = PIXEL_SAMPLES * PIXEL_SAMPLES;
 
 struct OffsetArray(Vec<PixelOffset>);
-
-struct PixelWeight {
-    pub offset: usize,
-    pub weight: f64,
-}
 
 pub struct ScreenSamples<'a> {
     parameters: &'a Settings,
@@ -109,7 +104,7 @@ impl<'a> ScreenSamples<'a> {
                                     }
                                     let mut device = None;
                                     let mut context = None;
-                                    if let Err(_) = D3D11CreateDevice(
+                                    if D3D11CreateDevice(
                                         adapter,
                                         D3D_DRIVER_TYPE_UNKNOWN,
                                         HINSTANCE::default(),
@@ -121,7 +116,9 @@ impl<'a> ScreenSamples<'a> {
                                         &mut device,
                                         ptr::null_mut(),
                                         &mut context,
-                                    ) {
+                                    )
+                                    .is_err()
+                                    {
                                         continue;
                                     }
                                     let (device, context) = match (device, context) {
@@ -166,8 +163,8 @@ impl<'a> ScreenSamples<'a> {
                                     }
 
                                     self.displays.push(DisplayResources {
-                                        adapter: adapter.clone(),
-                                        device,
+                                        _adapter: adapter.clone(),
+                                        _device: device,
                                         context,
                                         duplication,
                                         staging,
@@ -322,18 +319,17 @@ impl<'a> ScreenSamples<'a> {
 
         for (i, device) in self.displays.iter_mut().enumerate() {
             let display = &self.parameters.displays[i];
-            for (j, led) in display.positions.iter().enumerate() {
+            for j in 0..display.positions.len() {
                 let offsets = &self.pixel_offsets[i][j];
-                let mut pixels: *const u8 = ptr::null();
-                let mut pitch = 0_usize;
-                if let Some(staging) = &device.staging {
+                let (pixels, pitch) = if let Some(staging) = &device.staging {
                     unsafe {
                         let staging_map = match device.context.Map(staging, 0, D3D11_MAP_READ, 0) {
                             Ok(map) => map,
                             Err(_) => continue,
                         };
-                        pixels = mem::transmute(staging_map.pData);
-                        pitch = staging_map.RowPitch as usize;
+                        let pixels: *const u8 = mem::transmute(staging_map.pData);
+                        let pitch = staging_map.RowPitch as usize;
+                        (pixels, pitch)
                     }
                 } else {
                     unsafe {
@@ -352,10 +348,11 @@ impl<'a> ScreenSamples<'a> {
                                 _ => continue,
                             },
                         };
-                        pixels = mem::transmute(desktop_map.pBits);
-                        pitch = desktop_map.Pitch as usize;
+                        let pixels: *const u8 = mem::transmute(desktop_map.pBits);
+                        let pitch = desktop_map.Pitch as usize;
+                        (pixels, pitch)
                     }
-                }
+                };
 
                 let previous_color = previous_color.next().unwrap();
 
@@ -527,6 +524,10 @@ impl<'a> ScreenSamples<'a> {
         }
 
         true
+    }
+
+    pub fn is_empty(&self) -> bool {
+        !self.acquired_resources
     }
 
     fn get_factory(&mut self) -> Result<IDXGIFactory1> {

@@ -178,7 +178,7 @@ impl From<JsonOpcPixelRange> for OpcPixelRange {
 pub struct OpcChannel {
     pub channel: u8,
     pub pixels: Vec<OpcPixelRange>,
-    #[doc(hidden)]
+    #[cfg(test)]
     total_sample_count: usize,
     #[doc(hidden)]
     total_pixel_count: usize,
@@ -186,6 +186,7 @@ pub struct OpcChannel {
 
 impl OpcChannel {
     /// Get the count of display samples for this channel.
+    #[cfg(test)]
     pub fn get_total_sample_count(&self) -> usize {
         self.total_sample_count
     }
@@ -201,12 +202,16 @@ impl From<JsonOpcChannel> for OpcChannel {
         let mut channel = Self {
             channel: json.channel,
             pixels: json.pixels.into_iter().map(|pixel| pixel.into()).collect(),
+            #[cfg(test)]
             total_sample_count: 0,
             total_pixel_count: 0,
         };
 
         for pixel_range in channel.pixels.iter() {
-            channel.total_sample_count += pixel_range.sample_count;
+            #[cfg(test)]
+            {
+                channel.total_sample_count += pixel_range.sample_count;
+            }
             channel.total_pixel_count += pixel_range.pixel_count;
         }
 

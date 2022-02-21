@@ -30,7 +30,6 @@ struct PortResources {
     pub port_number: u8,
     pub wait_handle: HANDLE,
     pub buffer: [u8; COOKIE.len()],
-    pub cb: usize,
     pub overlapped: OVERLAPPED,
 }
 
@@ -45,7 +44,6 @@ impl Default for PortResources {
             port_number: 0,
             wait_handle: INVALID_HANDLE_VALUE,
             buffer: [0_u8; 4],
-            cb: 0,
             overlapped: Default::default(),
         }
     }
@@ -90,7 +88,9 @@ impl<'a> SerialPort<'a> {
         if INVALID_HANDLE_VALUE == self.port_handle {
             let mut pending_ports: Vec<Option<PortResources>> = Vec::new();
 
-            for port_number in 0_u8..=255 {
+            // Try to open every possible port from COM1 - COM255
+            for port_number in 0_u8..255 {
+                // See if any pending asynch reads have finished.
                 for port in pending_ports.iter_mut().filter_map(Some) {
                     if let Some(resources) = port {
                         let mut cb = 0_u32;
@@ -104,23 +104,28 @@ impl<'a> SerialPort<'a> {
                             .as_bool()
                             {
                                 if cb as usize == COOKIE.len() && resources.buffer == COOKIE {
+                                    // We found a match!
                                     self.port_number = resources.port_number;
                                     break;
                                 }
                             } else if GetLastError() == ERROR_IO_INCOMPLETE {
+                                // Still pending, go on to the next port.
                                 continue;
                             }
 
+                            // Any mismatched data or other error means we can't read from the port at all.
                             *port = None;
                         }
                     }
                 }
 
                 if self.port_number != 0 {
+                    // If we found a match, we can skip waiting for the rest of the I/O to complete below.
                     pending_ports.clear();
                     break;
                 }
 
+                // Try opening the next port.
                 let port_number = port_number + 1;
                 let (port_handle, configuration) = self.get_port(port_number, true);
                 if INVALID_HANDLE_VALUE == port_handle {
@@ -128,6 +133,7 @@ impl<'a> SerialPort<'a> {
                 }
 
                 unsafe {
+                    // Start an overlapped I/O call to look for the cookie sent from the Arduino.
                     let wait_handle = CreateEventW(ptr::null(), true, false, PWSTR::default());
                     let mut port = PortResources {
                         port_number,
@@ -151,13 +157,16 @@ impl<'a> SerialPort<'a> {
                     .as_bool()
                         && ERROR_IO_PENDING != GetLastError()
                     {
+                        // Any other error means we can't read from the port at all.
                         continue;
                     }
 
+                    // Add the new port to the list for the next iteration.
                     pending_ports.push(Some(port));
                 }
             }
 
+            // Finish waiting for any outstanding I/O.
             for port in pending_ports.iter_mut().filter_map(Some) {
                 if let Some(resources) = port {
                     let mut cb = 0_u32;
@@ -172,6 +181,7 @@ impl<'a> SerialPort<'a> {
                             && cb as usize == COOKIE.len()
                             && resources.buffer == COOKIE
                         {
+                            // We found a match!
                             self.port_number = resources.port_number;
                             break;
                         }
@@ -182,6 +192,7 @@ impl<'a> SerialPort<'a> {
             }
 
             if self.port_number != 0 {
+                // Once we find the right port we can just open it directly.
                 self.port_handle = self.get_port(self.port_number, false).0;
             }
         }

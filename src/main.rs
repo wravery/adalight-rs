@@ -4,6 +4,10 @@ mod screen_samples;
 mod serial_port;
 mod settings;
 
+use gamma_correction::GammaLookup;
+use pixel_buffer::PixelBuffer;
+use screen_samples::ScreenSamples;
+use serial_port::SerialPort;
 use settings::Settings;
 
 fn main() {
@@ -144,6 +148,48 @@ fn main() {
     ]
 }"#,
     );
-    println!("Hello, world!");
-    println!("Settings: {settings:?}");
+
+    match settings {
+        Ok(settings) => {
+            let _serial = SerialPort::new(&settings);
+            let gamma = GammaLookup::new();
+            let mut samples = ScreenSamples::new(&settings, &gamma);
+            let mut serial_buffer = PixelBuffer::new_serial_buffer(&settings);
+            let opc_channel = &settings.servers[0].channels[0];
+            let mut opc_buffer = PixelBuffer::new_opc_buffer(opc_channel);
+            let mut bob_buffer = PixelBuffer::new_bob_buffer(opc_channel);
+            let mut port = SerialPort::new(&settings);
+
+            let port_opened = port.open();
+
+            if samples.is_empty() {
+                samples
+                    .create_resources()
+                    .expect("create DXGI and D3D11 resources");
+            }
+
+            match samples.take_samples() {
+                Ok(()) => {
+                    println!("Got samples!");
+                    if samples.render_serial(&mut serial_buffer) {
+                        println!("Serial buffer: {}", serial_buffer.data().len());
+
+                        if port_opened {
+                            port.send(&serial_buffer);
+                        }
+                    }
+                    if samples.render_channel(opc_channel, &mut opc_buffer) {
+                        println!("OPC buffer: {}", opc_buffer.data().len());
+                    }
+                    if samples.render_channel(opc_channel, &mut bob_buffer) {
+                        println!("BOB buffer: {}", bob_buffer.data().len());
+                    }
+                }
+                Err(error) => eprintln!("Samples Error: {:?}", error),
+            }
+
+            println!("Settings: {settings:?}");
+        }
+        Err(error) => eprintln!("Settings Error: {:?}", error),
+    }
 }

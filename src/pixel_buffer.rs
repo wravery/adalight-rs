@@ -109,4 +109,8 @@ impl PixelBuffer {
     pub fn clear(&mut self) {
         self.position = self.offset.0.len();
     }
+
+    pub fn data(&self) -> &[u8] {
+        &self.buffer
+    }
 }
