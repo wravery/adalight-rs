@@ -1,5 +1,6 @@
 mod gamma_correction;
 mod pixel_buffer;
+mod screen_samples;
 mod serial_port;
 mod settings;
 
