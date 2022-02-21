@@ -530,7 +530,7 @@ mod test {
         let kernel_weights = opc_pixel_range.get_kernel_weights();
         assert_eq!(kernel_weights.len(), 9);
         let total = kernel_weights
-            .into_iter()
+            .iter()
             .copied()
             .reduce(|total, weight| total + weight)
             .expect("sum the weights");

@@ -211,13 +211,10 @@ impl<'a> ScreenSamples<'a> {
                     x[i] = (start_x + (step_x * (i as f64))) as usize;
                     y[i] = (start_y + (step_y * (i as f64))) as usize;
                 }
-                for row in 0..PIXEL_SAMPLES {
-                    for col in 0..PIXEL_SAMPLES {
+                for (row, y) in y.iter().enumerate() {
+                    for (col, x) in x.iter().enumerate() {
                         let pixel_index = (row * PIXEL_SAMPLES) + col;
-                        self.pixel_offsets[i][j].0[pixel_index] = PixelOffset {
-                            x: x[col],
-                            y: y[row],
-                        };
+                        self.pixel_offsets[i][j].0[pixel_index] = PixelOffset { x: *x, y: *y };
                     }
                 }
             }
@@ -467,7 +464,7 @@ impl<'a> ScreenSamples<'a> {
 
             // Start with sampled pixels, which tends to make very abrupt transitions when the pixel count
             // is higher than the sample count.
-            for pixel_index in 0..range.pixel_count {
+            for (pixel_index, sample) in sampled_pixels.iter_mut().enumerate() {
                 let mut pixel_color = 0_u32;
                 let mut display = 0_usize;
                 let mut pixel_offset = pixel_index * range.get_sample_count() / range.pixel_count;
@@ -490,7 +487,7 @@ impl<'a> ScreenSamples<'a> {
                     pixel_color = self.previous_colors[previous_color_index];
                 }
 
-                sampled_pixels[pixel_index] = pixel_color;
+                *sample = pixel_color;
             }
 
             // Write the pixel value to the message buffer, optionally blurring with the Gaussian kernel.
@@ -531,7 +528,7 @@ impl<'a> ScreenSamples<'a> {
     }
 
     fn get_factory(&mut self) -> Result<IDXGIFactory1> {
-        if let None = self.factory {
+        if self.factory.is_none() {
             self.factory = Some(unsafe { CreateDXGIFactory1() }?);
         }
 
