@@ -4,15 +4,11 @@ mod pixel_buffer;
 mod screen_samples;
 mod serial_port;
 mod settings;
+mod update_timer;
 
-use std::fs;
+use std::{fs, thread, time::Duration};
 
-use gamma_correction::GammaLookup;
-use opc_pool::OpcPool;
-use pixel_buffer::PixelBuffer;
-use screen_samples::ScreenSamples;
-use serial_port::SerialPort;
-use settings::Settings;
+use {settings::Settings, update_timer::UpdateTimer};
 
 fn main() {
     let config_json = fs::read_to_string("AdaLight.config.json").expect("read config file");
@@ -20,55 +16,11 @@ fn main() {
 
     match settings {
         Ok(settings) => {
-            let _serial = SerialPort::new(&settings);
-            let gamma = GammaLookup::new();
-            let mut samples = ScreenSamples::new(&settings, &gamma);
-            let mut serial_buffer = PixelBuffer::new_serial_buffer(&settings);
-            let mut port = SerialPort::new(&settings);
-            let mut pool = OpcPool::new(&settings);
-
-            let port_opened = port.open();
-            let pool_opened = pool.open();
-
-            if samples.is_empty() {
-                samples
-                    .create_resources()
-                    .expect("create DXGI and D3D11 resources");
+            let timer = UpdateTimer::new(settings);
+            if timer.start() {
+                thread::sleep(Duration::from_secs(30));
+                timer.stop();
             }
-
-            match samples.take_samples() {
-                Ok(()) => {
-                    println!("Got samples!");
-                    if samples.render_serial(&mut serial_buffer) {
-                        println!("Serial buffer: {}", serial_buffer.data().len());
-
-                        if port_opened {
-                            port.send(&serial_buffer);
-                        }
-                    }
-
-                    for (i, server) in settings.servers.iter().enumerate() {
-                        for channel in server.channels.iter() {
-                            let mut pixels = if server.alpha_channel {
-                                PixelBuffer::new_bob_buffer(channel)
-                            } else {
-                                PixelBuffer::new_opc_buffer(channel)
-                            };
-
-                            if samples.render_channel(channel, &mut pixels) {
-                                println!("OPC buffer: {}", pixels.data().len());
-
-                                if pool_opened {
-                                    pool.send(i, &pixels);
-                                }
-                            }
-                        }
-                    }
-                }
-                Err(error) => eprintln!("Samples Error: {:?}", error),
-            }
-
-            println!("Settings: {settings:?}");
         }
         Err(error) => eprintln!("Settings Error: {:?}", error),
     }
