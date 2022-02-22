@@ -132,47 +132,39 @@ impl WorkerThread {
                 let mut port = SerialPort::new(&worker.parameters);
                 let mut pool = OpcPool::new(&worker.parameters);
 
-                loop {
-                    match worker.rx.recv().expect("receive timer event") {
-                        TimerEvent::Fired => {
-                            if samples.is_empty() {
-                                let port_opened = port.open();
-                                let pool_opened = pool.open();
+                while let TimerEvent::Fired = worker.rx.recv().expect("receive timer event") {
+                    if samples.is_empty() {
+                        let port_opened = port.open();
+                        let pool_opened = pool.open();
 
-                                if (port_opened || pool_opened)
-                                    && samples.create_resources().is_ok()
-                                {
-                                    TimerThread::resume(timer.clone());
-                                } else if TimerThread::throttle(timer.clone()) {
-                                    serial_buffer.clear();
-                                }
+                        if (port_opened || pool_opened) && samples.create_resources().is_ok() {
+                            TimerThread::resume(timer.clone());
+                        } else if TimerThread::throttle(timer.clone()) {
+                            serial_buffer.clear();
+                        }
+                    }
+
+                    match samples.take_samples() {
+                        Ok(()) => {
+                            if samples.render_serial(&mut serial_buffer) {
+                                port.send(&serial_buffer);
                             }
 
-                            match samples.take_samples() {
-                                Ok(()) => {
-                                    if samples.render_serial(&mut serial_buffer) {
-                                        port.send(&serial_buffer);
-                                    }
+                            for (i, server) in worker.parameters.servers.iter().enumerate() {
+                                for channel in server.channels.iter() {
+                                    let mut pixels = if server.alpha_channel {
+                                        PixelBuffer::new_bob_buffer(channel)
+                                    } else {
+                                        PixelBuffer::new_opc_buffer(channel)
+                                    };
 
-                                    for (i, server) in worker.parameters.servers.iter().enumerate()
-                                    {
-                                        for channel in server.channels.iter() {
-                                            let mut pixels = if server.alpha_channel {
-                                                PixelBuffer::new_bob_buffer(channel)
-                                            } else {
-                                                PixelBuffer::new_opc_buffer(channel)
-                                            };
-
-                                            if samples.render_channel(channel, &mut pixels) {
-                                                pool.send(i, &pixels);
-                                            }
-                                        }
+                                    if samples.render_channel(channel, &mut pixels) {
+                                        pool.send(i, &pixels);
                                     }
                                 }
-                                Err(error) => eprintln!("Samples Error: {:?}", error),
                             }
                         }
-                        TimerEvent::Stopped => break
+                        Err(error) => eprintln!("Samples Error: {:?}", error),
                     }
                 }
             }));
