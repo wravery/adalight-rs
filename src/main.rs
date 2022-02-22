@@ -1,4 +1,5 @@
 mod gamma_correction;
+mod opc_pool;
 mod pixel_buffer;
 mod screen_samples;
 mod serial_port;
@@ -9,6 +10,8 @@ use pixel_buffer::PixelBuffer;
 use screen_samples::ScreenSamples;
 use serial_port::SerialPort;
 use settings::Settings;
+
+use crate::opc_pool::OpcPool;
 
 fn main() {
     let settings = Settings::from_str(
@@ -99,7 +102,7 @@ fn main() {
      */
     "servers": [
         {
-            "host": "192.168.1.14",
+            "host": "192.168.1.169",
             "port": "80",
             "alphaChannel": false,
 
@@ -155,12 +158,11 @@ fn main() {
             let gamma = GammaLookup::new();
             let mut samples = ScreenSamples::new(&settings, &gamma);
             let mut serial_buffer = PixelBuffer::new_serial_buffer(&settings);
-            let opc_channel = &settings.servers[0].channels[0];
-            let mut opc_buffer = PixelBuffer::new_opc_buffer(opc_channel);
-            let mut bob_buffer = PixelBuffer::new_bob_buffer(opc_channel);
             let mut port = SerialPort::new(&settings);
+            let mut pool = OpcPool::new(&settings);
 
             let port_opened = port.open();
+            let pool_opened = pool.open();
 
             if samples.is_empty() {
                 samples
@@ -178,11 +180,21 @@ fn main() {
                             port.send(&serial_buffer);
                         }
                     }
-                    if samples.render_channel(opc_channel, &mut opc_buffer) {
-                        println!("OPC buffer: {}", opc_buffer.data().len());
-                    }
-                    if samples.render_channel(opc_channel, &mut bob_buffer) {
-                        println!("BOB buffer: {}", bob_buffer.data().len());
+
+                    for (i, server) in settings.servers.iter().enumerate() {
+                        for channel in server.channels.iter() {
+                            let mut pixels = if server.alpha_channel {
+                                PixelBuffer::new_bob_buffer(channel)
+                            } else {
+                                PixelBuffer::new_opc_buffer(channel)
+                            };
+
+                            if samples.render_channel(channel, &mut pixels) {
+                                if pool_opened {
+                                    pool.send(i, &pixels);
+                                }
+                            }
+                        }
                     }
                 }
                 Err(error) => eprintln!("Samples Error: {:?}", error),
