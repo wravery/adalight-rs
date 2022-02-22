@@ -410,9 +410,9 @@ impl<'a> ScreenSamples<'a> {
                 }
 
                 let (r, g, b, a) = (
-                    r as u32 & 0xFF << 24,
-                    g as u32 & 0xFF << 16,
-                    b as u32 & 0xFF << 8,
+                    (r as u32 & 0xFF) << 24,
+                    (g as u32 & 0xFF) << 16,
+                    (b as u32 & 0xFF) << 8,
                     0xFF_u32,
                 );
                 *previous_color = r | g | b | a;
@@ -438,9 +438,9 @@ impl<'a> ScreenSamples<'a> {
                 self.gamma.blue(((*pixel & 0xFF00) >> 8) as u8),
             );
             let (r, g, b, a) = (
-                r as u32 & 0xFF << 24,
-                g as u32 & 0xFF << 16,
-                b as u32 & 0xFF << 8,
+                (r as u32 & 0xFF) << 24,
+                (g as u32 & 0xFF) << 16,
+                (b as u32 & 0xFF) << 8,
                 0xFF_u32,
             );
 
