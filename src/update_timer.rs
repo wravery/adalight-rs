@@ -132,24 +132,31 @@ impl WorkerThread {
                 let mut port = SerialPort::new(&worker.parameters);
                 let mut pool = OpcPool::new(&worker.parameters);
 
-                while let TimerEvent::Fired = worker.rx.recv().expect("receive timer event") {
-                    if samples.is_empty() {
-                        let port_opened = port.open();
-                        let pool_opened = pool.open();
+                loop {
+                    match worker.rx.recv().expect("receive timer event") {
+                        TimerEvent::Fired => {
+                            if samples.is_empty() {
+                                let port_opened = port.open();
+                                let pool_opened = pool.open();
 
-                        if (port_opened || pool_opened) && samples.create_resources().is_ok() {
-                            TimerThread::resume(timer.clone());
-                        } else if TimerThread::throttle(timer.clone()) {
-                            serial_buffer.clear();
-                        }
-                    }
-
-                    match samples.take_samples() {
-                        Ok(()) => {
-                            if samples.render_serial(&mut serial_buffer) {
-                                port.send(&serial_buffer);
+                                if (port_opened || pool_opened)
+                                    && samples.create_resources().is_ok()
+                                {
+                                    TimerThread::resume(timer.clone());
+                                } else if TimerThread::throttle(timer.clone()) {
+                                    serial_buffer.clear();
+                                }
                             }
 
+                            if let Err(error) = samples.take_samples() {
+                                eprintln!("Samples Error: {:?}", error);
+                            }
+
+                            // Update the LED strip.
+                            samples.render_serial(&mut serial_buffer);
+                            port.send(&serial_buffer);
+
+                            // Send the OPC frames to the server(s).
                             for (i, server) in worker.parameters.servers.iter().enumerate() {
                                 for channel in server.channels.iter() {
                                     let mut pixels = if server.alpha_channel {
@@ -158,13 +165,21 @@ impl WorkerThread {
                                         PixelBuffer::new_opc_buffer(channel)
                                     };
 
-                                    if samples.render_channel(channel, &mut pixels) {
-                                        pool.send(i, &pixels);
-                                    }
+                                    samples.render_channel(channel, &mut pixels);
+                                    pool.send(i, &pixels);
                                 }
                             }
                         }
-                        Err(error) => eprintln!("Samples Error: {:?}", error),
+                        TimerEvent::Stopped => {
+                            // Reset the LED strip
+                            serial_buffer.clear();
+                            port.send(&serial_buffer);
+
+                            // Free resources anytime the update timer stops completely.
+                            samples.free_resources();
+                            port.close();
+                            pool.close();
+                        }
                     }
                 }
             }));
