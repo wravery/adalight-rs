@@ -148,8 +148,10 @@ impl WorkerThread {
                                 }
                             }
 
-                            if let Err(error) = samples.take_samples() {
-                                eprintln!("Samples Error: {:?}", error);
+                            if !samples.is_empty() {
+                                if let Err(error) = samples.take_samples() {
+                                    eprintln!("Samples Error: {:?}", error);
+                                }
                             }
 
                             // Update the LED strip.
