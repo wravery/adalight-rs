@@ -219,10 +219,6 @@ impl UpdateTimer {
         TimerThread::stop(self.timer.clone())
     }
 
-    pub fn throttle(&self) -> bool {
-        TimerThread::throttle(self.timer.clone())
-    }
-
     pub fn resume(&self) -> bool {
         TimerThread::resume(self.timer.clone())
     }
