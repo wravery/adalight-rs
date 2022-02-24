@@ -56,4 +56,4 @@ My home setup includes a Raspberry Pi running a [Fadecandy OPC server](https://g
 
 ## WIP: "BobLight" Alpha-Blending
 
-My son also experimented with an alpha-blending multi-client extension to the OPC protocol which he called "BobLight." We never finished the server, but both the C++ and the Rust version of this driver support adding an alpha channel and streaming that to a server that supports it using the OPC `System exclusive (command 255)` with a system ID of `0xB0B`.
+@milkey-mouse also experimented with an alpha-blending multi-client extension to the OPC protocol which he called "BobLight." We never finished the [server](https://github.com/milkey-mouse/BamboozLED), but both the C++ and the Rust version of this driver support adding an alpha channel and streaming that to a server that supports it using the OPC `System exclusive (command 255)` with a system ID of `0xB0B`.
