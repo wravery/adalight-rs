@@ -73,8 +73,9 @@
       "host": "darthfader.",
       "port": "80",
 
-      // Warning: setting this to true has never been tested! See notes in the README for
-      // WIP: "BobLight" Alpha-Blending for more info.
+      // WARNING: Setting this to true has never been tested! See notes in the README
+      // [WIP: "BobLight" Alpha-Blending](https://github.com/wravery/adalight-rs#wip-boblight-alpha-blending)
+      // for more info.
       "alphaChannel": false,
 
       "channels": [
