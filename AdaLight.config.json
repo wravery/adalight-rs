@@ -72,6 +72,9 @@
     {
       "host": "darthfader.",
       "port": "80",
+
+      // Warning: setting this to true has never been tested! See notes in the README for
+      // WIP: "BobLight" Alpha-Blending for more info.
       "alphaChannel": false,
 
       "channels": [
