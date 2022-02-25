@@ -29,25 +29,58 @@ use crate::{
     settings::{OpcChannel, Settings},
 };
 
+/// Resources we need to use or just keep alive to get screen samples with the DXGI
+/// and D3D11 screen duplication APIs.
 struct DisplayResources {
+    /// The [IDXGIAdapter1] interface, which we just need to keep alive once set.
     pub _adapter: IDXGIAdapter1,
+
+    /// The [ID3D11Device] interface, which we just need to keep alive once set.
     pub _device: ID3D11Device,
+
+    /// The [ID3D11DeviceContext] interface.
     pub context: ID3D11DeviceContext,
+
+    /// The [IDXGIOutputDuplication] interface.
     pub duplication: IDXGIOutputDuplication,
+
+    /// Optional [ID3D11Texture2D] interface containing a staging texture. If the contents
+    /// of the screen texture are already in main memory, we don't need to copy it from
+    /// the GPU, and we don't need a `staging` texture. If the contents are not in main
+    /// memory, we need to copy it to a `staging` texture first before we can map it.
     pub staging: Option<ID3D11Texture2D>,
+
+    /// True if we've mapped the texture memory and it needs to be unmapped.
     pub acquired_frame: bool,
+
+    /// The `bounds` of the texture in pixels.
     pub bounds: SIZE,
 }
 
+/// Position of a sample pixel in an evenly spaced 16x16 grid for each sample block.
+#[derive(Copy)]
 struct PixelOffset {
     pub x: usize,
     pub y: usize,
 }
 
+impl Clone for PixelOffset {
+    fn clone(&self) -> Self {
+        Self {
+            x: self.x,
+            y: self.y,
+        }
+    }
+}
+
+/// Number of sample pixels in the x and y directions for each sample block.
 const PIXEL_SAMPLES: usize = 16;
+
+/// Number of sample pixels in each 16x16 sample block.
 const OFFSET_ARRAY_SIZE: usize = PIXEL_SAMPLES * PIXEL_SAMPLES;
 
-struct OffsetArray(Vec<PixelOffset>);
+/// New-type wrapped around an array of [PixelOffset] values for a sample block.
+struct OffsetArray([Option<PixelOffset>; OFFSET_ARRAY_SIZE]);
 
 pub struct ScreenSamples<'a> {
     parameters: &'a Settings,
@@ -63,6 +96,7 @@ pub struct ScreenSamples<'a> {
 }
 
 impl<'a> ScreenSamples<'a> {
+    /// Allocate a new instance of [ScreenSamples].
     pub fn new(parameters: &'a Settings, gamma: &'a GammaLookup) -> Self {
         Self {
             parameters,
@@ -78,6 +112,8 @@ impl<'a> ScreenSamples<'a> {
         }
     }
 
+    /// Allocate the resources that [ScreenSamples] needs to call `take_samples` and return
+    /// an [Err] value if they could not be acquired successfully.
     pub fn create_resources(&mut self) -> Result<()> {
         if self.acquired_resources {
             return Ok(());
@@ -198,8 +234,7 @@ impl<'a> ScreenSamples<'a> {
             let range_y = bounds.cy as f64 / display.vertical_count as f64;
             let step_y = range_y / PIXEL_SAMPLES as f64;
             self.pixel_offsets[i].resize_with(display.positions.len(), || {
-                let mut offsets = Vec::new();
-                offsets.resize_with(OFFSET_ARRAY_SIZE, || PixelOffset { x: 0, y: 0 });
+                let offsets = [None; OFFSET_ARRAY_SIZE];
                 OffsetArray(offsets)
             });
             for (j, led) in display.positions.iter().enumerate() {
@@ -214,7 +249,8 @@ impl<'a> ScreenSamples<'a> {
                 for (row, y) in y.iter().enumerate() {
                     for (col, x) in x.iter().enumerate() {
                         let pixel_index = (row * PIXEL_SAMPLES) + col;
-                        self.pixel_offsets[i][j].0[pixel_index] = PixelOffset { x: *x, y: *y };
+                        self.pixel_offsets[i][j].0[pixel_index] =
+                            Some(PixelOffset { x: *x, y: *y });
                     }
                 }
             }
@@ -232,6 +268,7 @@ impl<'a> ScreenSamples<'a> {
         Ok(())
     }
 
+    /// Free all of the resources acquired in `create_resources`.
     pub fn free_resources(&mut self) {
         if !self.acquired_resources {
             return;
@@ -265,6 +302,8 @@ impl<'a> ScreenSamples<'a> {
         self.acquired_resources = false;
     }
 
+    /// If resources were successfully acquired in `create_resources`, iterate over the
+    /// displays and calculate the new values in `previous_colors` for each sample block.
     pub fn take_samples(&mut self) -> Result<()> {
         if !self.acquired_resources {
             E_FAIL.ok()?;
@@ -358,15 +397,22 @@ impl<'a> ScreenSamples<'a> {
                     .0
                     .iter()
                     .map(|offset| {
-                        let byte_offset = (offset.y * pitch) + (offset.x * mem::size_of::<u32>());
-                        let pixels =
-                            ptr::slice_from_raw_parts(pixels, byte_offset + mem::size_of::<u32>());
-                        unsafe {
-                            (
-                                (*pixels)[byte_offset + 2] as f64,
-                                (*pixels)[byte_offset + 1] as f64,
-                                (*pixels)[byte_offset] as f64,
-                            )
+                        if let Some(ref offset) = offset {
+                            let byte_offset =
+                                (offset.y * pitch) + (offset.x * mem::size_of::<u32>());
+                            let pixels = ptr::slice_from_raw_parts(
+                                pixels,
+                                byte_offset + mem::size_of::<u32>(),
+                            );
+                            unsafe {
+                                (
+                                    (*pixels)[byte_offset + 2] as f64,
+                                    (*pixels)[byte_offset + 1] as f64,
+                                    (*pixels)[byte_offset] as f64,
+                                )
+                            }
+                        } else {
+                            unreachable!()
                         }
                     })
                     .reduce(|total, rgb| (total.0 + rgb.0, total.1 + rgb.1, total.2 + rgb.2))
@@ -424,6 +470,8 @@ impl<'a> ScreenSamples<'a> {
         Ok(())
     }
 
+    /// Copy the values in `previous_colors` with gamma correction to the `serial`
+    /// [PixelBuffer].
     pub fn render_serial(&self, serial: &mut PixelBuffer) -> bool {
         serial.clear();
 
@@ -451,6 +499,10 @@ impl<'a> ScreenSamples<'a> {
         true
     }
 
+    /// Copy the values from `previous_colors` to a [PixelBuffer] for an OPC channel.
+    /// The values in the [PixelBuffer] use a Guassian blur to smooth the transitions
+    /// between sample blocks when the sample blocks are each mapped to more than one
+    /// pixel of the OPC channel.
     pub fn render_channel(&self, channel: &OpcChannel, pixels: &mut PixelBuffer) -> bool {
         pixels.clear();
 
@@ -523,10 +575,12 @@ impl<'a> ScreenSamples<'a> {
         true
     }
 
+    /// Test if we acquired the resources we need with `create_resources` to call `take_samples`.
     pub fn is_empty(&self) -> bool {
         !self.acquired_resources
     }
 
+    /// Convenience function to create an instance of [IDXGIFactory1].
     fn get_factory(&mut self) -> Result<IDXGIFactory1> {
         if self.factory.is_none() {
             self.factory = Some(unsafe { CreateDXGIFactory1() }?);

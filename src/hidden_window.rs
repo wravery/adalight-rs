@@ -25,12 +25,15 @@ use windows::{
 
 use crate::update_timer::UpdateTimer;
 
+/// Boxed state for the [HiddenWindow] stored in the [WindowsAndMessaging::GWLP_USERDATA]
+/// data slot.
 struct WindowState {
     pub connected_to_console: bool,
     pub timer: UpdateTimer,
 }
 
 impl WindowState {
+    /// Allocate a new instance of [WindowState] and pass it ownership of the [UpdateTimer].
     pub fn new(timer: UpdateTimer) -> Self {
         Self {
             connected_to_console: unsafe { GetSystemMetrics(SM_REMOTESESSION) } == 0,
@@ -39,9 +42,13 @@ impl WindowState {
     }
 }
 
+/// Type which constructs an [HWND], implements the [WindowsAndMessaging::WNDPROC] and
+/// sets the [WindowState] on the window.
 pub struct HiddenWindow(HWND);
 
 impl HiddenWindow {
+    /// Allocate a new instance of [HiddenWindow] and create the new [HWND]. The [UpdateTimer]
+    /// in `timer` is passed to the [WindowState], which takes ownership of it.
     pub fn new(timer: UpdateTimer) -> Self {
         let h_wnd = unsafe {
             let class_name = Self::get_window_class();
@@ -81,6 +88,8 @@ impl HiddenWindow {
         Self(h_wnd)
     }
 
+    /// Convert the static `AdaLightListener` string to a [Vec<u8>] that can be used
+    /// to create a [PSTR] for [WNDCLASSEXA].
     fn get_window_class() -> Vec<u8> {
         "AdaLightListener"
             .bytes()
@@ -88,6 +97,7 @@ impl HiddenWindow {
             .collect()
     }
 
+    /// Show a [MessageBoxW] error dialog with an error message.
     pub unsafe fn display_last_error() {
         let mut error = PWSTR::default();
         FormatMessageW(
@@ -103,6 +113,7 @@ impl HiddenWindow {
         LocalFree(error.0 as isize);
     }
 
+    /// Set an instance of [WindowState] on the [HWND] in `h_wnd`.
     fn set_window_state(
         h_wnd: HWND,
         state: Option<Rc<RefCell<WindowState>>>,
@@ -125,6 +136,7 @@ impl HiddenWindow {
         }
     }
 
+    /// Get the current instance of [WindowState] from the [HWND] in `h_wnd`.
     fn get_window_state(h_wnd: HWND) -> Option<Rc<RefCell<WindowState>>> {
         unsafe {
             let data = Self::get_window_long(h_wnd, WindowsAndMessaging::GWLP_USERDATA);
@@ -140,6 +152,7 @@ impl HiddenWindow {
         }
     }
 
+    /// Handle reconnecting to the console session.
     fn attach_to_console(h_wnd: HWND) {
         if let Some(state) = Self::get_window_state(h_wnd) {
             let state = state.borrow();
@@ -150,6 +163,7 @@ impl HiddenWindow {
         }
     }
 
+    /// Handle detaching from the console session.
     fn detach_from_console(h_wnd: HWND) {
         if let Some(state) = Self::get_window_state(h_wnd) {
             let state = state.borrow();
@@ -159,6 +173,7 @@ impl HiddenWindow {
         }
     }
 
+    /// Implement the [HiddenWindow] [WindowsAndMessaging::WNDPROC].
     unsafe extern "system" fn window_proc(
         h_wnd: HWND,
         message: u32,
@@ -207,24 +222,28 @@ impl HiddenWindow {
         }
     }
 
+    /// Wrapper around [WindowsAndMessaging::SetWindowLongA].
     #[allow(non_snake_case)]
     #[cfg(target_pointer_width = "32")]
     unsafe fn set_window_long(window: HWND, index: WINDOW_LONG_PTR_INDEX, value: isize) -> isize {
         WindowsAndMessaging::SetWindowLongA(window, index, value as _) as _
     }
 
+    /// Wrapper around [WindowsAndMessaging::SetWindowLongPtrA].
     #[allow(non_snake_case)]
     #[cfg(target_pointer_width = "64")]
     unsafe fn set_window_long(window: HWND, index: WINDOW_LONG_PTR_INDEX, value: isize) -> isize {
         WindowsAndMessaging::SetWindowLongPtrA(window, index, value)
     }
 
+    /// Wrapper around [WindowsAndMessaging::GetWindowLongA].
     #[allow(non_snake_case)]
     #[cfg(target_pointer_width = "32")]
     unsafe fn get_window_long(window: HWND, index: WINDOW_LONG_PTR_INDEX) -> isize {
         WindowsAndMessaging::GetWindowLongA(window, index) as _
     }
 
+    /// Wrapper around [WindowsAndMessaging::GetWindowLongPtrA].
     #[allow(non_snake_case)]
     #[cfg(target_pointer_width = "64")]
     unsafe fn get_window_long(window: HWND, index: WINDOW_LONG_PTR_INDEX) -> isize {

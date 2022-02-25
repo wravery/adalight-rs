@@ -9,21 +9,44 @@ use crate::{
     screen_samples::ScreenSamples, serial_port::SerialPort, settings::Settings,
 };
 
+/// The [TimerThread] runs in a loop firing [TimerEvent] messages over an [std::sync::mpsc]
+/// channel to the [WorkerThread].
 enum TimerEvent {
+    /// The [TimerThread] interval event fired.
     Fired,
+
+    /// The [TimerThread] is stopping.
     Stopped,
 }
 
+/// The state and a [JoinHandle<()>] for the [TimerThread].
 struct TimerThread {
+    /// The [mpsc::Sender<TimerEvent>] to send [TimerEvent] messages to the [WorkerThread].
     tx: mpsc::Sender<TimerEvent>,
+
+    /// The [Option<JoinHandle<()>>] for the [TimerThread], used to join the thread when it
+    /// is stopped.
     thread: Option<JoinHandle<()>>,
+
+    /// True if the [TimerThread] is currently throttled because there are no listeners, the
+    /// session is locked, or it's a Remote Desktop connection and not connected to the
+    /// system console.
     throttled: bool,
+
+    /// True if the [TimerThread] is stopped or stopping.
     stopped: bool,
+
+    /// Time in milliseconds between [TimerThread] loop intervals when throttled.
     throttle_timer: u32,
+
+    /// Time in milliseconds between [TimerThread] loop intervals when not throttled.
+    /// This is the time between intervals required to hit the [crate::settings::Settings]
+    /// `fps_max` frame rate (`1000 / fps_max`).
     delay: u32,
 }
 
 impl TimerThread {
+    /// Allocate a new, unstarted [TimerThread] struct.
     pub fn new(parameters: &Settings, tx: mpsc::Sender<TimerEvent>) -> Self {
         Self {
             tx,
@@ -35,6 +58,8 @@ impl TimerThread {
         }
     }
 
+    /// Start the [TimerThread] in `timer`, and pass it the [WorkerThread] [JoinHandle<()>]
+    /// in `worker` to let the [TimerThread] join that thread when stopping.
     pub fn start(timer: Arc<Mutex<TimerThread>>, worker: Arc<Mutex<Option<JoinHandle<()>>>>) {
         let clone = timer.clone();
         let mut timer = timer.lock().expect("lock timer");
@@ -68,6 +93,7 @@ impl TimerThread {
         }));
     }
 
+    /// Stop the [TimerThread] in `timer`.
     pub fn stop(timer: Arc<Mutex<TimerThread>>) -> bool {
         let (stopped, thread) = {
             let mut timer = timer.lock().expect("lock timer");
@@ -86,6 +112,8 @@ impl TimerThread {
         stopped
     }
 
+    /// Throttle the [TimerThread] in `timer` when the session is locked or
+    /// detached from the console, or when there are no listeners.
     pub fn throttle(timer: Arc<Mutex<TimerThread>>) -> bool {
         let mut timer = timer.lock().expect("lock timer");
         let throttled = timer.throttled;
@@ -93,6 +121,8 @@ impl TimerThread {
         !throttled && !timer.stopped
     }
 
+    /// Resume the throttled [TimerThread] in `timer` when the session is unlocked
+    /// or reattaches to the console and there are listeners.
     pub fn resume(timer: Arc<Mutex<TimerThread>>) -> bool {
         let mut timer = timer.lock().expect("lock timer");
         let throttled = timer.throttled;
@@ -101,13 +131,21 @@ impl TimerThread {
     }
 }
 
+/// The state and a [JoinHandle<()>] for the [WorkerThread].
 struct WorkerThread {
+    /// Configuration parameters in a [crate::settings::Settings] struct.
     parameters: Settings,
+
+    /// The [mpsc::Receiver<TimerEvent>] to receive [TimerEvent] messages from the [TimerThread].
     rx: mpsc::Receiver<TimerEvent>,
+
+    /// The [Option<JoinHandle<()>>] for the [WorkerThread], used to join the thread when the
+    /// [TimerThread] is stopped.
     thread: Arc<Mutex<Option<JoinHandle<()>>>>,
 }
 
 impl WorkerThread {
+    /// Allocate a new, unstarted [WorkerThread] struct.
     pub fn new(parameters: Settings, rx: mpsc::Receiver<TimerEvent>) -> Self {
         Self {
             parameters,
@@ -116,6 +154,9 @@ impl WorkerThread {
         }
     }
 
+    /// Start the [WorkerThread] in `worker`, and pass it the [TimerThread]
+    /// in `timer` to let the [WorkerThread] throttle and resume the [TimerThread]
+    /// when the D3D11 or DXGI resources or the listeners are lost and reconnected.
     pub fn start(
         timer: Arc<Mutex<TimerThread>>,
         worker: Arc<Mutex<WorkerThread>>,
@@ -191,12 +232,14 @@ impl WorkerThread {
     }
 }
 
+/// Public interface which manages the [TimerThread] and [WorkerThread].
 pub struct UpdateTimer {
     timer: Arc<Mutex<TimerThread>>,
     worker: Arc<Mutex<WorkerThread>>,
 }
 
 impl UpdateTimer {
+    /// Allocate an unstarted [UpdateTimer] using the [Settings] in `parameters`.
     pub fn new(parameters: Settings) -> Self {
         let (tx, rx) = mpsc::channel();
         Self {
@@ -205,6 +248,7 @@ impl UpdateTimer {
         }
     }
 
+    /// Start the [WorkerThread] and [TimerThread].
     pub fn start(&self) -> bool {
         let worker = WorkerThread::start(self.timer.clone(), self.worker.clone());
         let result = {
@@ -217,6 +261,7 @@ impl UpdateTimer {
         result
     }
 
+    /// Stop the [WorkerThread] and [TimerThread].
     pub fn stop(&self) -> bool {
         TimerThread::stop(self.timer.clone())
     }

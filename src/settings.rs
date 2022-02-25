@@ -263,6 +263,10 @@ impl From<JsonOpcServer> for OpcServer {
     }
 }
 
+/// JSON doesn't allow comments, and neither does [serde_json], but the C++ version
+/// used the [cpprestsdk](https://github.com/microsoft/cpprestsdk) parser which ignores
+/// them. So, to maintain backwards compatibility (and preserve the comments in the
+/// sample), strip them on input while deserializing the settings.
 fn strip_comments(json: &str) -> String {
     #[derive(Debug)]
     enum State {
