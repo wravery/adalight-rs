@@ -1,3 +1,5 @@
+#![cfg_attr(all(windows, not(test)), windows_subsystem = "windows")]
+
 mod gamma_correction;
 mod hidden_window;
 mod opc_pool;
