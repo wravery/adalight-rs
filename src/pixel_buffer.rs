@@ -119,7 +119,12 @@ impl PixelBuffer {
 
     /// Reset the buffer position to the start of the pixel data in the [PixelBuffer].
     pub fn clear(&mut self) {
-        self.position = self.offset.0.len();
+        let buffer_size = self.buffer.len();
+        if buffer_size > self.offset.0.len() {
+            self.position = self.offset.0.len();
+            self.buffer.resize(self.offset.0.len(), 0_u8);
+            self.buffer.resize(buffer_size, 0_u8);
+        }
     }
 
     /// Get a [u8] slice for the full [PixelBuffer] buffer, including the [Header] at

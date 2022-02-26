@@ -63,6 +63,7 @@ impl TimerThread {
     pub fn start(timer: Arc<Mutex<TimerThread>>, worker: Arc<Mutex<Option<JoinHandle<()>>>>) {
         let clone = timer.clone();
         let mut timer = timer.lock().expect("lock timer");
+        timer.stopped = false;
         timer.thread = Some(thread::spawn(move || {
             loop {
                 let start_loop = Instant::now();
@@ -193,11 +194,7 @@ impl WorkerThread {
                                 }
                             }
 
-                            if !samples.is_empty() {
-                                if let Err(error) = samples.take_samples() {
-                                    eprintln!("Samples Error: {:?}", error);
-                                }
-                            }
+                            let _ = samples.take_samples();
 
                             // Update the LED strip.
                             samples.render_serial(&mut serial_buffer);
@@ -226,6 +223,8 @@ impl WorkerThread {
                             samples.free_resources();
                             port.close();
                             pool.close();
+
+                            break;
                         }
                     }
                 }

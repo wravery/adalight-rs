@@ -318,8 +318,8 @@ impl<'a> ScreenSamples<'a> {
                 / (unsafe { GetTickCount64() } - self.start_tick) as f64;
             self.frame_count = 0;
             self.start_tick = 0;
-
-            dbg!(format!("Frame Rate: {}", self.frame_rate));
+            let message = format!("Frame Rate: {}", self.frame_rate);
+            dbg!(message);
         }
 
         self.acquired_resources = false;
@@ -340,7 +340,7 @@ impl<'a> ScreenSamples<'a> {
         {
             unsafe {
                 if device.acquired_frame {
-                    device.duplication.ReleaseFrame()?;
+                    let _ = device.duplication.ReleaseFrame();
                     device.acquired_frame = false;
                 }
 
