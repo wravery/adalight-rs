@@ -1,4 +1,4 @@
-use std::{mem, ptr};
+use std::{mem, ptr, time::Instant};
 
 use windows::{
     core::{Interface, Result},
@@ -19,7 +19,6 @@ use windows::{
                 DXGI_ERROR_UNSUPPORTED,
             },
         },
-        System::SystemInformation::GetTickCount64,
     },
 };
 
@@ -110,9 +109,9 @@ pub struct ScreenSamples<'a> {
     /// Keeps track of how many frames have been successfully rendered with `take_samples`.
     frame_count: usize,
 
-    /// The tickcount when `create_resources` last succeeded, used to calculate the effective
+    /// The [Instant] when `create_resources` last succeeded, used to calculate the effective
     /// `frame_rate` since then the next time `free_resources` is called.
-    start_tick: u64,
+    start_tick: Option<Instant>,
 
     /// The effective frame rate between the last call to `create_resources` and `free_resources`.
     frame_rate: f64,
@@ -130,7 +129,7 @@ impl<'a> ScreenSamples<'a> {
             previous_colors: Vec::new(),
             acquired_resources: false,
             frame_count: 0,
-            start_tick: 0,
+            start_tick: None,
             frame_rate: 0.0,
         }
     }
@@ -286,7 +285,7 @@ impl<'a> ScreenSamples<'a> {
         );
 
         self.acquired_resources = true;
-        self.start_tick = unsafe { GetTickCount64() };
+        self.start_tick = Some(Instant::now());
 
         Ok(())
     }
@@ -313,11 +312,14 @@ impl<'a> ScreenSamples<'a> {
         self.displays.clear();
         self.pixel_offsets.clear();
 
-        if self.start_tick != 0 {
-            self.frame_rate = (self.frame_count * 1000) as f64
-                / (unsafe { GetTickCount64() } - self.start_tick) as f64;
+        if let Some(start_tick) = self.start_tick {
+            let elapsed = (Instant::now() - start_tick).as_secs_f64();
+            if elapsed > 0.0 {
+                self.frame_rate = self.frame_count as f64 / elapsed;
+            }
             self.frame_count = 0;
-            self.start_tick = 0;
+            self.start_tick = None;
+
             let message = format!("Frame Rate: {}", self.frame_rate);
             dbg!(message);
         }
