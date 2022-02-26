@@ -82,16 +82,39 @@ const OFFSET_ARRAY_SIZE: usize = PIXEL_SAMPLES * PIXEL_SAMPLES;
 /// New-type wrapped around an array of [PixelOffset] values for a sample block.
 struct OffsetArray([Option<PixelOffset>; OFFSET_ARRAY_SIZE]);
 
+/// Public interface for capturing [PixelBuffer] samples of the console session displays.
 pub struct ScreenSamples<'a> {
+    /// Parameters including timeouts and the delay between frames in a [Settings] struct.
     parameters: &'a Settings,
+
+    /// Gamma correction lookup table in a [GammaLookup] struct.
     gamma: &'a GammaLookup,
+
+    /// Optional instance of [IDXGIFactory1] which is used to request DXGI resources.
     factory: Option<IDXGIFactory1>,
+
+    /// Resources for all configured displays in `parameters`, stored in [DisplayResources] structs.
     displays: Vec<DisplayResources>,
+
+    /// Cached [PixelOffset] structs for the sample pixel positions in each sample block.
     pixel_offsets: Vec<Vec<OffsetArray>>,
+
+    /// Last set of RGBA colors computed for each sample block in `take_samples`. This determines
+    /// the content of the [PixelBuffer] filled in by `render_serial` and `render_channel`.
     previous_colors: Vec<u32>,
+
+    /// True if the last call to `create_resources` succeeded and [ScreenSamples] can successfully
+    /// handle a call to `take_samples`.
     acquired_resources: bool,
+
+    /// Keeps track of how many frames have been successfully rendered with `take_samples`.
     frame_count: usize,
+
+    /// The tickcount when `create_resources` last succeeded, used to calculate the effective
+    /// `frame_rate` since then the next time `free_resources` is called.
     start_tick: u64,
+
+    /// The effective frame rate between the last call to `create_resources` and `free_resources`.
     frame_rate: f64,
 }
 

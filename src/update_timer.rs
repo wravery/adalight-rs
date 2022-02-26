@@ -238,7 +238,10 @@ impl WorkerThread {
 
 /// Public interface which manages the [TimerThread] and [WorkerThread].
 pub struct UpdateTimer {
+    /// The [TimerThread] instance.
     timer: Arc<Mutex<TimerThread>>,
+
+    /// The [WorkerThread] instance.
     worker: Arc<Mutex<WorkerThread>>,
 }
 
