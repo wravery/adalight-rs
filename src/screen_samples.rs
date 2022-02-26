@@ -474,9 +474,9 @@ impl<'a> ScreenSamples<'a> {
                         let deficit = min_brightness - sum;
                         let sum_2 = sum * 2.0;
 
-                        r = (deficit * (sum - r)) / sum_2;
-                        g = (deficit * (sum - g)) / sum_2;
-                        b = (deficit * (sum - b)) / sum_2;
+                        r += (deficit * (sum - r)) / sum_2;
+                        g += (deficit * (sum - g)) / sum_2;
+                        b += (deficit * (sum - b)) / sum_2;
                     }
                 }
 
