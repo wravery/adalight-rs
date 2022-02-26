@@ -1,7 +1,7 @@
 use std::{
     sync::{mpsc, Arc, Mutex},
     thread::{self, JoinHandle},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use crate::{
@@ -65,6 +65,7 @@ impl TimerThread {
         let mut timer = timer.lock().expect("lock timer");
         timer.thread = Some(thread::spawn(move || {
             loop {
+                let start_loop = Instant::now();
                 let delay = {
                     let timer = clone.lock().expect("lock timer thread");
 
@@ -84,8 +85,11 @@ impl TimerThread {
                         timer.delay
                     }
                 };
-
-                thread::sleep(Duration::from_millis(u64::from(delay)));
+                let next_loop = start_loop + Duration::from_millis(u64::from(delay));
+                let start_sleep = Instant::now();
+                if next_loop > start_sleep {
+                    thread::sleep(next_loop - start_sleep);
+                }
             }
 
             let worker = worker.lock().expect("lock worker thread").take();
