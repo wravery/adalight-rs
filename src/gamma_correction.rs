@@ -12,7 +12,7 @@ pub struct GammaLookup {
 }
 
 impl GammaLookup {
-    /// Create a new GammaLookup instance to perform gamma correction on the RGB
+    /// Create a new [GammaLookup] instance to perform gamma correction on the RGB
     /// channels for each LED color.
     pub fn new() -> Self {
         Self {
