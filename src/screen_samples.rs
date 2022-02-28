@@ -461,7 +461,7 @@ impl<'a> ScreenSamples<'a> {
                 if sum < min_brightness {
                     if sum.abs() < f64::EPSILON {
                         // Spread equally to R, G, and B.
-                        let value = sum / 3.0;
+                        let value = min_brightness / 3.0;
 
                         r = value;
                         g = value;
