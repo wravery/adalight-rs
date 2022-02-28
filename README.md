@@ -1,13 +1,13 @@
 # Adalight in Rust
 
-This is a port of a C++ port of the Processing (Java) driver for the AdaLight project to a Rust Windows application. This version runs without any UI, so you might want to use the preview UI in the original Processing application first to figure out your settings and then copy those variables to `AdaLight.conf.js`.
+This is a port of a C++ port of the Processing (Java) driver for the AdaLight project to a Rust Windows application. This version runs without any UI, so you might want to use the preview UI in the original Processing application first to figure out your settings and then copy those variables to `AdaLight.config.json`.
 
 - Adalight guide: https://learn.adafruit.com/adalight-diy-ambient-tv-lighting/pieces?w=all#download-and-install
 - DirectX 11 C++ references: https://msdn.microsoft.com/en-us/library/windows/desktop/ff476082(v=vs.85).aspx
 
-I implemented the C++ application a few years ago: [Port the Processing driver program to C++](https://github.com/adafruit/Adalight/pull/11). _[The PR was never acknowledged, so I suspect the original project has been abandoned.]_ Since then, I also added support for [Open Pixel Control](http://openpixelcontrol.org/) servers in my [opc-integrate](https://github.com/wravery/Adalight/tree/opc-integrate) branch, which is what I use at home to project the edges of my screen to LED strips on the wall while gaming.
+I implemented the C++ application a few years ago: [Port the Processing driver program to C++](https://github.com/adafruit/Adalight/pull/11).`*` Since then, I also added support for [Open Pixel Control](http://openpixelcontrol.org/) servers in my [opc-integrate](https://github.com/wravery/Adalight/tree/opc-integrate) branch, which is what I use at home to project the edges of my screen to LED strips on the wall while gaming.
 
-I plan to replace the C++ version at home with this project and add UI to help configure `AdaLight.conf.js` using [Tauri](https://tauri.studio/) going forward.
+I have replaced the C++ version at home with this project. In the future, I plan on adding UI to help configure `AdaLight.config.json` using [Tauri](https://tauri.studio/).
 
 ## About Adalight
 
@@ -56,6 +56,12 @@ My home setup includes a Raspberry Pi running a [Fadecandy OPC server](https://g
 
 ## WIP: "BobLight" Alpha-Blending
 
-[@milkey-mouse](https://github.com/milkey-mouse) also experimented with an alpha-blending multi-client extension to the OPC protocol initially called "BobLight." Both the C++ and the Rust version of this driver support adding an alpha channel and streaming that to a server that supports it using the OPC `System exclusive (command 255)` with a system ID of `0xB0B`.
+[@milkey-mouse](https://github.com/milkey-mouse) also experimented with an alpha-blending multi-client extension to the OPC protocol initially called "BobLight."`**` Both the C++ and the Rust version of this driver support adding an alpha channel and streaming that to a server that supports it using the OPC `System exclusive (command 255)` with a system ID of `0xB0B`.
 
- We never finished the [server](https://github.com/milkey-mouse/BamboozLED), and it morphed into a compositing reverse-proxy instead of a completely different streaming protocol. Unless you want to pick up where we left off, you should avoid setting the `alphaChannel` property to `true` for any servers, it won't work with a standard OPC server.
+ We never finished the [server](https://github.com/milkey-mouse/BamboozLED), and it morphed into a compositing reverse-proxy instead of a completely different streaming protocol.  Unless you want to pick up where we left off, you should avoid setting the `alphaChannel` property to `true` for any servers, it won't work with a standard OPC server.
+
+## Notes
+
+`*` _The PR was never acknowledged, so I suspect the original project has been abandoned._
+
+`**` _We found out there was already a similar project with the name "BobLight," so we couldn't keep that name._
