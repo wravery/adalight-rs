@@ -13,7 +13,7 @@ I have replaced the C++ version at home with this project. In the future, I plan
 
 This is a demo of adalight-rs projecting an ultra-wide video, [Norway - The colours of the North / Relaxation Film // 21:9 8k HDR](https://www.youtube.com/watch?v=DppVAQqaNE4), to the FadeCandy OPC server running my own LED setup at home:
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/scrPfUpUi9U" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[![adalight-rs demo](./doc/videopreview.png)](https://www.youtube.com/watch?v=scrPfUpUi9U)
 
 ## About Adalight
 
