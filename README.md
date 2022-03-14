@@ -9,6 +9,12 @@ I implemented the C++ application a few years ago: [Port the Processing driver p
 
 I have replaced the C++ version at home with this project. In the future, I plan on adding UI to help configure `AdaLight.config.json` using [Tauri](https://tauri.studio/).
 
+## Demo Video
+
+This is a demo of adalight-rs projecting an ultra-wide video, [Norway - The colours of the North / Relaxation Film // 21:9 8k HDR](https://www.youtube.com/watch?v=DppVAQqaNE4), to the FadeCandy OPC server running my own LED setup at home:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/scrPfUpUi9U" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 ## About Adalight
 
 The Adalight project was released by [adafruit](https://learn.adafruit.com/adalight-diy-ambient-tv-lighting/pieces?w=all#download-and-install) as a standalone DIY project:
