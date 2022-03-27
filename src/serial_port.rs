@@ -35,22 +35,6 @@ struct PortResources {
     pub overlapped: *mut OVERLAPPED,
 }
 
-impl Default for PortResources {
-    fn default() -> Self {
-        Self {
-            port_handle: INVALID_HANDLE_VALUE,
-            configuration: DCB {
-                DCBlength: std::mem::size_of::<DCB>() as u32,
-                ..Default::default()
-            },
-            port_number: 0,
-            wait_handle: INVALID_HANDLE_VALUE,
-            buffer: ptr::null_mut(),
-            overlapped: ptr::null_mut(),
-        }
-    }
-}
-
 impl Drop for PortResources {
     fn drop(&mut self) {
         if INVALID_HANDLE_VALUE != self.port_handle {
@@ -170,7 +154,6 @@ impl<'a> SerialPort<'a> {
                                 hEvent: wait_handle,
                                 ..Default::default()
                             })),
-                            ..Default::default()
                         };
 
                         if !ReadFile(
