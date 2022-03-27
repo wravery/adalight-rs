@@ -31,8 +31,8 @@ struct PortResources {
     pub configuration: DCB,
     pub port_number: u8,
     pub wait_handle: HANDLE,
-    pub buffer: [u8; COOKIE.len()],
-    pub overlapped: OVERLAPPED,
+    pub buffer: *mut [u8; COOKIE.len()],
+    pub overlapped: *mut OVERLAPPED,
 }
 
 impl Default for PortResources {
@@ -45,8 +45,8 @@ impl Default for PortResources {
             },
             port_number: 0,
             wait_handle: INVALID_HANDLE_VALUE,
-            buffer: [0_u8; 4],
-            overlapped: Default::default(),
+            buffer: ptr::null_mut(),
+            overlapped: ptr::null_mut(),
         }
     }
 }
@@ -67,6 +67,18 @@ impl Drop for PortResources {
                 CloseHandle(self.wait_handle);
             }
             self.wait_handle = INVALID_HANDLE_VALUE;
+        }
+
+        if !self.buffer.is_null() {
+            let buffer = self.buffer;
+            self.buffer = ptr::null_mut();
+            unsafe { Box::from_raw(buffer) };
+        }
+
+        if !self.overlapped.is_null() {
+            let overlapped = self.overlapped;
+            self.overlapped = ptr::null_mut();
+            unsafe { Box::from_raw(overlapped) };
         }
     }
 }
@@ -104,19 +116,19 @@ impl<'a> SerialPort<'a> {
                 // Try to open every possible port from COM1 - COM255
                 for port_number in 0_u8..255 {
                     // See if any pending asynch reads have finished.
-                    for port in pending_ports.iter_mut().filter_map(Some) {
+                    for port in pending_ports.iter_mut() {
                         if let Some(resources) = port {
                             let mut cb = 0_u32;
                             unsafe {
                                 if GetOverlappedResult(
                                     resources.port_handle,
-                                    &resources.overlapped,
+                                    resources.overlapped,
                                     &mut cb,
                                     false,
                                 )
                                 .as_bool()
                                 {
-                                    if cb as usize == COOKIE.len() && resources.buffer == COOKIE {
+                                    if cb as usize == COOKIE.len() && *resources.buffer == COOKIE {
                                         // We found a match!
                                         self.port_number = resources.port_number;
                                         break;
@@ -148,24 +160,25 @@ impl<'a> SerialPort<'a> {
                     unsafe {
                         // Start an overlapped I/O call to look for the cookie sent from the Arduino.
                         let wait_handle = CreateEventW(ptr::null(), true, false, PWSTR::default());
-                        let mut port = PortResources {
-                            port_number,
+                        let port = PortResources {
                             port_handle,
                             configuration,
+                            port_number,
                             wait_handle,
-                            overlapped: OVERLAPPED {
+                            buffer: Box::into_raw(Box::new([0_u8; COOKIE.len()])),
+                            overlapped: Box::into_raw(Box::new(OVERLAPPED {
                                 hEvent: wait_handle,
                                 ..Default::default()
-                            },
+                            })),
                             ..Default::default()
                         };
 
                         if !ReadFile(
                             port.port_handle,
-                            mem::transmute(port.buffer.as_mut_ptr()),
-                            port.buffer.len() as u32,
+                            mem::transmute((*port.buffer).as_mut_ptr()),
+                            (*port.buffer).len() as u32,
                             ptr::null_mut(),
-                            &mut port.overlapped,
+                            port.overlapped,
                         )
                         .as_bool()
                             && ERROR_IO_PENDING != GetLastError()
@@ -180,19 +193,19 @@ impl<'a> SerialPort<'a> {
                 }
 
                 // Finish waiting for any outstanding I/O.
-                for port in pending_ports.iter_mut().filter_map(Some) {
+                for port in pending_ports.iter_mut() {
                     if let Some(resources) = port {
                         let mut cb = 0_u32;
                         unsafe {
                             if GetOverlappedResult(
                                 resources.port_handle,
-                                &resources.overlapped,
+                                resources.overlapped,
                                 &mut cb,
                                 true,
                             )
                             .as_bool()
                                 && cb as usize == COOKIE.len()
-                                && resources.buffer == COOKIE
+                                && *resources.buffer == COOKIE
                             {
                                 // We found a match!
                                 self.port_number = resources.port_number;
